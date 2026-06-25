@@ -232,8 +232,8 @@ function render(){
   const mainTbl = spacingRows(s.mainVals.filter(v=>v!=null && v!==""), mAvg);
   const tieTbl  = spacingRows(s.tieVals.filter(v=>v!=null && v!==""), tAvg);
 
-  const dash = v => (v===""||v==null) ? '<span style="color:#bbb">–</span>' : v;
-  const unit = (v,u) => (v===""||v==null) ? '<span style="color:#bbb">–</span>' : v+u;
+  const dash = v => (v===""||v==null) ? '–' : v;
+  const unit = (v,u) => (v===""||v==null) ? '–' : v+u;
 
   const fig = s.image
     ? `<img src="${s.image}" alt="철근 직선 추출 결과">`
