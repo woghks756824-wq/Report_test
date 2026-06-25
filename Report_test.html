@@ -7,12 +7,12 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root{
-    --ink:#1a1a1a; --line:#cfcfcf; --soft:#f5f6f8; --brand:#0f3d6e;
+    --ink:#1a1a1a; --line:#cfcfcf; --soft:#f5f6f8; --brand:#3a3a3a;
     --ok:#137333; --ng:#c5221f; --muted:#666;
   }
   *{box-sizing:border-box}
   body{
-    margin:0; background:#e9ebef; color:var(--ink);
+    margin:0; background:#ececec; color:var(--ink);
     font-family:"Malgun Gothic","맑은 고딕",AppleSDGothicNeo,"Apple SD 산돌고딕 Neo",sans-serif;
     font-size:14px; line-height:1.5;
   }
@@ -23,8 +23,8 @@
   .panel{background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px; position:sticky; top:24px}
   .panel h2{margin:0 0 4px; font-size:16px; color:var(--brand)}
   .panel .sub{color:var(--muted); font-size:12px; margin-bottom:14px}
-  .drop{display:block; border:1.5px dashed #b6c2d2; border-radius:8px; padding:12px; margin-bottom:10px; cursor:pointer; background:var(--soft); transition:.15s}
-  .drop:hover{border-color:var(--brand); background:#eef3f9}
+  .drop{display:block; border:1.5px dashed #bdbdbd; border-radius:8px; padding:12px; margin-bottom:10px; cursor:pointer; background:var(--soft); transition:.15s}
+  .drop:hover{border-color:var(--brand); background:#eeeeee}
   .drop.loaded{border-style:solid; border-color:var(--ok); background:#eef7ef}
   .drop b{display:block; font-size:13px}
   .drop span{font-size:11.5px; color:var(--muted)}
@@ -39,7 +39,7 @@
   .rgrid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px}
   .rgrid input{width:100%; min-width:0; padding:5px; font-size:12px; text-align:center; border:1px solid var(--line); border-radius:6px; font-family:inherit}
   .btn{width:100%; margin-top:18px; padding:13px; border:0; border-radius:8px; background:var(--brand); color:#fff; font-size:15px; font-weight:700; cursor:pointer}
-  .btn:hover{background:#0c3158}
+  .btn:hover{background:#222222}
   .btn.ghost{background:#fff; color:var(--brand); border:1px solid var(--brand); margin-top:8px; font-size:13px; padding:9px}
 
   /* ── 보고서 ── */
@@ -57,8 +57,8 @@
   #report p{margin:6px 0; font-size:12.5px; color:#333}
   table.t{width:100%; border-collapse:collapse; font-size:12.5px}
   table.t th,table.t td{border:1px solid #b9b9b9; padding:6px 8px; text-align:center}
-  table.t th{background:#eef2f7; font-weight:600}
-  table.kv th{width:30%; background:#eef2f7; text-align:left}
+  table.t th{background:#ededed; font-weight:600}
+  table.kv th{width:30%; background:#ededed; text-align:left}
   table.kv td{text-align:left}
   .badge{display:inline-block; min-width:34px; padding:1px 8px; border-radius:4px; font-weight:700; font-size:12px}
   .badge.ok{background:#e6f4ea; color:var(--ok)}

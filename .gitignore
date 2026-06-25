@@ -1,0 +1,6 @@
+# 기본적으로 모든 파일 제외 — 공개할 파일만 아래에서 예외 처리
+/*
+# 공개 대상
+!Report_test.html
+!.gitignore
+!README.md
