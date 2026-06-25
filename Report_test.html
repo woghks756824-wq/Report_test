@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>철근 시공 측정 보고서 생성기</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#1a1a1a; --line:#cfcfcf; --soft:#f5f6f8; --brand:#0f3d6e;
+    --ok:#137333; --ng:#c5221f; --muted:#666;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:#e9ebef; color:var(--ink);
+    font-family:"Malgun Gothic","맑은 고딕",AppleSDGothicNeo,"Apple SD 산돌고딕 Neo",sans-serif;
+    font-size:14px; line-height:1.5;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:24px; display:grid; grid-template-columns:380px 1fr; gap:24px; align-items:start}
+  @media (max-width:980px){.wrap{grid-template-columns:1fr}}
+
+  /* ── 입력 패널 ── */
+  .panel{background:#fff; border:1px solid var(--line); border-radius:10px; padding:18px; position:sticky; top:24px}
+  .panel h2{margin:0 0 4px; font-size:16px; color:var(--brand)}
+  .panel .sub{color:var(--muted); font-size:12px; margin-bottom:14px}
+  .drop{display:block; border:1.5px dashed #b6c2d2; border-radius:8px; padding:12px; margin-bottom:10px; cursor:pointer; background:var(--soft); transition:.15s}
+  .drop:hover{border-color:var(--brand); background:#eef3f9}
+  .drop.loaded{border-style:solid; border-color:var(--ok); background:#eef7ef}
+  .drop b{display:block; font-size:13px}
+  .drop span{font-size:11.5px; color:var(--muted)}
+  .drop input{display:none}
+
+  .field{margin-bottom:9px}
+  .field label{display:block; font-size:11.5px; color:var(--muted); margin-bottom:3px}
+  .field input{width:100%; padding:7px 8px; border:1px solid var(--line); border-radius:6px; font:inherit; font-size:13px}
+  .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px}
+  .sec-label{font-size:12px; font-weight:700; color:var(--brand); margin:16px 0 8px; padding-bottom:4px; border-bottom:1px solid var(--soft)}
+  .hint{font-size:11px; color:var(--muted); margin-top:2px}
+  .rgrid{display:grid; grid-template-columns:repeat(5,1fr); gap:6px}
+  .rgrid input{width:100%; min-width:0; padding:5px; font-size:12px; text-align:center; border:1px solid var(--line); border-radius:6px; font-family:inherit}
+  .btn{width:100%; margin-top:18px; padding:13px; border:0; border-radius:8px; background:var(--brand); color:#fff; font-size:15px; font-weight:700; cursor:pointer}
+  .btn:hover{background:#0c3158}
+  .btn.ghost{background:#fff; color:var(--brand); border:1px solid var(--brand); margin-top:8px; font-size:13px; padding:9px}
+
+  /* ── 보고서 ── */
+  .report-area{display:flex; justify-content:center}
+  #report{
+    background:#fff; width:210mm; min-height:297mm; padding:18mm 16mm;
+    box-shadow:0 2px 16px rgba(0,0,0,.12); color:#111;
+  }
+  .rep-head{display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--muted); border-bottom:1px solid #ccc; padding-bottom:6px; margin-bottom:18px}
+  .rep-title{text-align:center; margin-bottom:22px}
+  .rep-title h1{margin:0; font-size:23px; letter-spacing:1px}
+  .rep-title .en{font-size:12px; color:#555; letter-spacing:.5px; margin-top:3px}
+  #report h3{font-size:15px; color:var(--brand); margin:24px 0 9px; padding-left:8px; border-left:4px solid var(--brand)}
+  #report h4{font-size:13px; color:#333; margin:14px 0 6px}
+  #report p{margin:6px 0; font-size:12.5px; color:#333}
+  table.t{width:100%; border-collapse:collapse; font-size:12.5px}
+  table.t th,table.t td{border:1px solid #b9b9b9; padding:6px 8px; text-align:center}
+  table.t th{background:#eef2f7; font-weight:600}
+  table.kv th{width:30%; background:#eef2f7; text-align:left}
+  table.kv td{text-align:left}
+  .badge{display:inline-block; min-width:34px; padding:1px 8px; border-radius:4px; font-weight:700; font-size:12px}
+  .badge.ok{background:#e6f4ea; color:var(--ok)}
+  .badge.ng{background:#fce8e6; color:var(--ng)}
+  .figure{text-align:center; margin:10px 0}
+  .figure img{max-width:100%; border:1px solid #ccc}
+  .figure .cap{font-size:11.5px; color:#555; margin-top:6px}
+  .figure .ph{padding:40px; border:1px dashed #bbb; color:#999; background:#fafafa; font-size:13px}
+  .verdict{margin-top:14px; padding:12px 14px; border-radius:8px; font-size:14px; font-weight:700; display:flex; align-items:center; gap:10px}
+  .verdict.ok{background:#e6f4ea; color:var(--ok); border:1px solid #b7dfc2}
+  .verdict.ng{background:#fce8e6; color:var(--ng); border:1px solid #f0b6b3}
+  .verdict .big{font-size:22px}
+  .note{font-size:11.5px; color:#555; line-height:1.7}
+  .rep-foot{margin-top:24px; padding-top:8px; border-top:1px solid #ccc; font-size:10.5px; color:#888; text-align:center}
+
+  /* ── 인쇄 ── */
+  @media print{
+    @page{size:A4; margin:14mm}
+    body{background:#fff}
+    .wrap{display:block; max-width:none; margin:0; padding:0}
+    .no-print{display:none !important}
+    .report-area{display:block}
+    #report{width:auto; min-height:0; padding:0; box-shadow:none}
+    #report h3,#report h4,table.t,.figure,.verdict{break-inside:avoid}
+    table.t{font-size:11px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== 입력 패널 ===== -->
+  <aside class="panel no-print">
+    <h2>보고서 데이터 입력</h2>
+    <div class="sub">측정 시스템 출력 파일을 올리면 자동으로 채워집니다. 값은 직접 수정할 수 있습니다.</div>
+
+    <label class="drop" id="drop-xlsx">
+      <b>① 비교결과 (.xlsx)</b><span>설계값·측정값·판정 자동 입력</span>
+      <input type="file" accept=".xlsx" id="f-xlsx">
+    </label>
+    <label class="drop" id="drop-csv">
+      <b>② 원시 측정값 (.csv)</b><span>주근/띠철근 R1~Rn 간격</span>
+      <input type="file" accept=".csv" id="f-csv">
+    </label>
+    <label class="drop" id="drop-png">
+      <b>③ 주석 이미지 (.png/.jpg)</b><span>철근 직선 검출 결과</span>
+      <input type="file" accept="image/*" id="f-png">
+    </label>
+
+    <div class="sec-label">프로젝트 개요</div>
+    <div class="field"><label>프로젝트명</label><input id="i-project" data-k="project"></div>
+    <div class="grid3">
+      <div class="field"><label>부재 ID</label><input id="i-member" data-k="member"></div>
+      <div class="field"><label>단면(mm)</label><input id="i-section" data-k="section"></div>
+      <div class="field"><label>측정 일시</label><input id="i-date" data-k="date"></div>
+    </div>
+    <div class="grid3">
+      <div class="field"><label>주근 규격</label><input id="i-main-spec" data-k="mainSpec"></div>
+      <div class="field"><label>띠철근 규격</label><input id="i-tie-spec" data-k="tieSpec"></div>
+      <div class="field"><label>촬영 방향</label><input id="i-dir" data-k="dir"></div>
+    </div>
+
+    <div class="sec-label">설계값 (판정 기준)</div>
+    <div class="grid3">
+      <div class="field"><label>주근 개수</label><input id="i-d-count" data-k="dCount" inputmode="numeric"></div>
+      <div class="field"><label>주근 간격(mm)</label><input id="i-d-main" data-k="dMain" inputmode="decimal"></div>
+      <div class="field"><label>띠철근 간격(mm)</label><input id="i-d-tie" data-k="dTie" inputmode="decimal"></div>
+    </div>
+    <div class="hint">판정은 설계값 대비 측정 평균값 ±10% 기준으로 자동 계산됩니다.</div>
+
+    <div class="sec-label">측정값 — 주근 방향 간격(mm)</div>
+    <div class="hint" style="margin-bottom:6px">검출 주근 개수 <input id="i-main-count" style="width:54px;padding:3px;text-align:center;border:1px solid var(--line);border-radius:5px" inputmode="numeric"> 개</div>
+    <div class="rgrid" id="grid-main"></div>
+
+    <div class="sec-label">측정값 — 띠철근 방향 간격(mm)</div>
+    <div class="rgrid" id="grid-tie"></div>
+
+    <button class="btn ghost" id="btn-sample">예시 데이터로 채우기</button>
+    <button class="btn ghost" id="btn-clear">전체 비우기</button>
+  </aside>
+
+  <!-- ===== 보고서 + 출력 ===== -->
+  <main class="report-area">
+    <div style="width:210mm; max-width:100%">
+      <div id="report"></div>
+      <button class="btn no-print" id="btn-print" style="width:210mm;max-width:100%">📄 PDF로 출력</button>
+    </div>
+  </main>
+
+</div>
+
+<script>
+"use strict";
+
+/* ── 상태 ── */
+const state = {
+  project:"", member:"", section:"", date:"",
+  mainSpec:"", tieSpec:"", dir:"",
+  dCount:"", dMain:"", dTie:"",
+  mainCount:"",              // 검출 주근 개수 (count 판정용)
+  detectedMainCount:null,
+  mainVals:[],               // 주근 R값 배열
+  tieVals:[],                // 띠철근 R값 배열
+  image:null                 // dataURL
+};
+
+/* ── 유틸 ── */
+const $ = s => document.querySelector(s);
+const num = v => { const n = parseFloat(String(v).replace(/[^0-9.\-]/g,"")); return isNaN(n)?null:n; };
+const avg = arr => { const v = arr.map(num).filter(x=>x!==null); return v.length ? v.reduce((a,b)=>a+b,0)/v.length : null; };
+const fmt = (n,d=2) => n===null?"–":n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+
+/* ── R값(간격 구간) 입력 그리드 생성 ──
+   셀 개수 = 해당 측정값 배열 길이(없으면 기본값). 검출 주근 개수와는 별개. */
+function buildGrid(elId, key, fallback){
+  const el = $(elId);
+  el.innerHTML = "";
+  const arr = state[key];
+  const total = Math.max(arr.length || fallback, 1);
+  for(let i=0;i<total;i++){
+    const inp = document.createElement("input");
+    inp.placeholder = "R"+(i+1);
+    inp.value = arr[i]!=null ? arr[i] : "";
+    inp.addEventListener("input", ()=>{ state[key][i] = inp.value; render(); });
+    el.appendChild(inp);
+  }
+}
+function rebuildGrids(){
+  buildGrid("#grid-main","mainVals",9);
+  buildGrid("#grid-tie","tieVals",8);
+}
+
+/* ── 판정 (±10%) ── */
+function judgeSpacing(measured, design){
+  const m = num(measured), d = num(design);
+  if(m===null || d===null || d===0) return null;
+  return Math.abs(m-d)/d <= 0.10;
+}
+function judgeCount(measured, design){
+  const m = num(measured), d = num(design);
+  if(m===null || d===null) return null;
+  return m === d;
+}
+const badge = ok => ok===null ? '<span class="badge">–</span>'
+  : ok ? '<span class="badge ok">OK</span>' : '<span class="badge ng">NG</span>';
+
+/* ── 측정 평균 ── */
+function measuredCount(){ const n=num(state.mainCount); return n; }
+function mainAvg(){ return avg(state.mainVals); }
+function tieAvg(){ return avg(state.tieVals); }
+
+/* ── 보고서 렌더 ── */
+function render(){
+  const s = state;
+  const mAvg = mainAvg(), tAvg = tieAvg();
+  const mCount = measuredCount();
+
+  const jCount = judgeCount(mCount, s.dCount);
+  const jMain  = judgeSpacing(mAvg, s.dMain);
+  const jTie   = judgeSpacing(tAvg, s.dTie);
+  const allOk  = [jCount,jMain,jTie].every(x=>x===true);
+  const anySet = [jCount,jMain,jTie].some(x=>x!==null);
+
+  const spacingRows = (arr, avgVal) => {
+    const cells = arr.length ? arr : [];
+    const head = cells.map((_,i)=>`<th>R${i+1}</th>`).join("") + "<th>평균</th>";
+    const body = cells.map(v=>`<td>${num(v)!==null?fmt(num(v)):"–"}</td>`).join("")
+               + `<td><b>${avgVal!==null?fmt(avgVal):"–"}</b></td>`;
+    return {head, body, n:cells.length};
+  };
+  const mainTbl = spacingRows(s.mainVals.filter(v=>v!=null && v!==""), mAvg);
+  const tieTbl  = spacingRows(s.tieVals.filter(v=>v!=null && v!==""), tAvg);
+
+  const dash = v => (v===""||v==null) ? '<span style="color:#bbb">미입력</span>' : v;
+
+  const fig = s.image
+    ? `<img src="${s.image}" alt="철근 직선 추출 결과">`
+    : `<div class="ph">③ 주석 이미지를 업로드하면 여기에 표시됩니다</div>`;
+
+  let verdictHtml = "";
+  if(anySet){
+    verdictHtml = allOk
+      ? `<div class="verdict ok"><span class="big">✔</span><div>종합 판정: 적합 (OK)<div class="note" style="color:var(--ok);font-weight:400;margin-top:3px">
+          주근 개수(${dash(mCount)}개), 주근 간격(${mAvg!==null?fmt(mAvg)+"mm":"–"}, 기준 ${dash(s.dMain)}mm),
+          띠철근 간격(${tAvg!==null?fmt(tAvg)+"mm":"–"}, 기준 ${dash(s.dTie)}mm) 모두 허용 오차 ±10% 이내로 시공 적합 판정.</div></div></div>`
+      : `<div class="verdict ng"><span class="big">✘</span><div>종합 판정: 부적합 (NG)<div class="note" style="color:var(--ng);font-weight:400;margin-top:3px">
+          허용 오차 ±10%를 벗어난 항목이 있어 시공 부적합으로 판정됩니다. 항목별 판정을 확인하세요.</div></div></div>`;
+  }
+
+  $("#report").innerHTML = `
+    <div class="rep-head">
+      <span>철근 시공 측정 보고서</span>
+      <span>NDTLAB, Soongsil University</span>
+    </div>
+    <div class="rep-title">
+      <h1>철근 시공 측정 보고서</h1>
+      <div class="en">Rebar Construction Inspection Report</div>
+    </div>
+
+    <h3>1. 프로젝트 개요</h3>
+    <table class="t kv">
+      <tr><th>프로젝트</th><td>${dash(s.project)}</td></tr>
+      <tr><th>부재 ID</th><td>${dash(s.member)}</td></tr>
+      <tr><th>단면</th><td>${dash(s.section)}</td></tr>
+      <tr><th>주근 규격</th><td>${dash(s.mainSpec)}</td></tr>
+      <tr><th>띠철근 규격</th><td>${dash(s.tieSpec)}</td></tr>
+      <tr><th>촬영 방향</th><td>${dash(s.dir)}</td></tr>
+      <tr><th>측정 일시</th><td>${dash(s.date)}</td></tr>
+    </table>
+
+    <h3>2. 철근 직선 추출 결과</h3>
+    <p>SegFormer 기반 철근 세그멘테이션 및 Hough Transform 직선 검출 결과입니다. 수평 철근(빨강)과 수직 철근(초록)이 자동 분류되었습니다.</p>
+    <div class="figure">
+      ${fig}
+      <div class="cap">▲ 철근 직선 추출 및 간격 측정 결과 이미지 (빨강: 주근 방향, 초록: 띠철근 방향)</div>
+    </div>
+
+    <h3>3. 간격 측정 결과</h3>
+    <h4>3-1. 주근 방향 간격 (Vertical / Main Rebar)</h4>
+    <p>검출된 주근 방향 철근 수: ${dash(mCount)}개 (간격 구간: ${mainTbl.n}개)</p>
+    <table class="t"><tr><th>주근 간격</th>${mainTbl.head}</tr><tr><td>측정값 (mm)</td>${mainTbl.body}</tr></table>
+
+    <h4>3-2. 띠철근 방향 간격 (Horizontal / Tie Rebar)</h4>
+    <p>검출된 띠철근 방향 간격 구간: ${tieTbl.n}개</p>
+    <table class="t"><tr><th>띠철근 간격</th>${tieTbl.head}</tr><tr><td>측정값 (mm)</td>${tieTbl.body}</tr></table>
+
+    <h3>4. 시공 적합성 판정</h3>
+    <p>설계도서 대비 측정값을 비교하여 ±10% 허용 오차 기준으로 판정합니다.</p>
+    <table class="t">
+      <tr><th>항목</th><th>주근 개수</th><th>주근 간격(mm)</th><th>띠철근 간격(mm)</th></tr>
+      <tr><td>설계값</td><td>${dash(s.dCount)}개</td><td>${dash(s.dMain)} mm</td><td>${dash(s.dTie)} mm</td></tr>
+      <tr><td>측정값</td><td>${mCount!==null?mCount+"개":"–"}</td><td>${mAvg!==null?fmt(mAvg,1)+" mm":"–"}</td><td>${tAvg!==null?fmt(tAvg,1)+" mm":"–"}</td></tr>
+      <tr><td>판정</td><td>${badge(jCount)}</td><td>${badge(jMain)}</td><td>${badge(jTie)}</td></tr>
+    </table>
+    ${verdictHtml}
+
+    <h3>5. 비고</h3>
+    <p class="note">
+      본 보고서는 AI 기반 자동 철근 간격 측정 시스템(NDTLAB, 숭실대학교)에 의해 생성되었습니다.<br>
+      측정 시스템: SegFormer + Monocular Depth Estimation + Hough Transform 파이프라인
+    </p>
+
+    <div class="rep-foot">철근 시공 측정 보고서 · NDTLAB, Soongsil University</div>
+  `;
+}
+
+/* ── 폼 → 상태 동기화 ── */
+function syncFormToState(){
+  document.querySelectorAll("[data-k]").forEach(inp=>{
+    inp.value = state[inp.dataset.k] ?? "";
+  });
+  $("#i-main-count").value = state.mainCount ?? "";
+  rebuildGrids();
+  render();
+}
+document.querySelectorAll("[data-k]").forEach(inp=>{
+  inp.addEventListener("input", ()=>{ state[inp.dataset.k] = inp.value; render(); });
+});
+$("#i-main-count").addEventListener("input", e=>{
+  state.mainCount = e.target.value;   // 검출 주근 개수(간격 그리드와 무관)
+  render();
+});
+
+/* ── CSV 파싱 ──
+   형식: 1행이 ",R1,R2,...,Average" 이면 각 측정행의 마지막 숫자는 평균이므로 제외.
+   빈 셀(예: 띠철근 R9 누락)은 건너뛰고 실제 측정값만 수집한다. */
+function parseCsv(text){
+  const lines = text.split(/\r?\n/);
+  const headerHasAvg = (lines[0]||"").split(",").map(c=>c.trim().toLowerCase()).pop()==="average";
+
+  const collect = cols => {
+    const vals = cols.slice(1).filter(c=>c!=="").map(num).filter(x=>x!==null).map(String);
+    if(headerHasAvg && vals.length) vals.pop();   // 마지막 = 평균 → 제외
+    return vals;
+  };
+
+  for(const line of lines){
+    const cols = line.split(",").map(c=>c.trim());
+    const key = cols[0].toLowerCase();
+    if(key.startsWith("main rebar spacing"))      state.mainVals = collect(cols);
+    else if(key.startsWith("tie rebar spacing"))  state.tieVals  = collect(cols);
+    else if(key.startsWith("main rebar count")){
+      const c = num(cols[1]);
+      if(c!==null) state.detectedMainCount = c;
+    }
+  }
+}
+
+/* ── XLSX 파싱 ── */
+function parseXlsx(arrayBuffer){
+  const wb = XLSX.read(new Uint8Array(arrayBuffer), {type:"array"});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+  // 제목행(0행)에서 프로젝트/일시 추출 시도
+  const title = (rows[0]&&rows[0][0])||"";
+  const dm = title.match(/평가일시[:\s]*([0-9_\-:]+)/) || title.match(/(\d{4}-\d{2}-\d{2})/);
+  // 데이터행: 헤더(1행) 다음 첫 데이터행
+  const dataRow = rows[2] || [];
+  // 열 인덱스: A0 ID,B1 참조,C2 단면,D3 주근규격,E4 띠철근규격,F5 촬영방향,
+  //           G6 주근개수설계,H7 주근개수측정,I8 판정,J9 주근간격설계,K10 주근간격측정,L11 판정,
+  //           M12 띠철근간격설계,N13 띠철근간격측정,O14 판정,P15 종합
+  const g = i => (dataRow[i]!==undefined ? String(dataRow[i]).trim() : "");
+  if(g(0)) state.member  = g(0);
+  if(g(2)) state.section = g(2).replace(/X/i," × ").replace(/\s+/g," ").trim() + (/(mm)$/i.test(g(2))?"":" mm");
+  if(g(3)) state.mainSpec = g(3);
+  if(g(4)) state.tieSpec  = g(4);
+  if(g(5)) state.dir      = g(5);
+  if(g(6)) state.dCount   = g(6);
+  if(g(9)) state.dMain    = g(9);
+  if(g(12)) state.dTie    = g(12);
+  // 측정 주근개수 (있으면 mainCount 보정용으로 저장)
+  if(g(7)) state.detectedMainCount = num(g(7));
+  if(dm){ state.date = state.date || (dm[1]||dm[0]).replace(/_/g," ").split(" ")[0]; }
+}
+
+/* ── 파일 핸들러 ── */
+function markLoaded(dropId){ $(dropId).classList.add("loaded"); }
+
+$("#f-csv").addEventListener("change", e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    parseCsv(r.result);
+    if(state.detectedMainCount!=null) state.mainCount = state.detectedMainCount;
+    markLoaded("#drop-csv");
+    syncFormToState();
+  };
+  r.readAsText(file, "utf-8");
+});
+
+$("#f-xlsx").addEventListener("change", e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{ parseXlsx(r.result); }
+    catch(err){ alert("xlsx 파싱 실패: "+err.message); return; }
+    if(state.detectedMainCount!=null) state.mainCount = state.detectedMainCount;  // 주근개수(측정)
+    if(!state.project && state.member) state.project = "Column "+state.member;
+    markLoaded("#drop-xlsx");
+    syncFormToState();
+  };
+  r.readAsArrayBuffer(file);
+});
+
+$("#f-png").addEventListener("change", e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = ()=>{ state.image = r.result; markLoaded("#drop-png"); render(); };
+  r.readAsDataURL(file);
+});
+
+/* ── 버튼 ── */
+$("#btn-print").addEventListener("click", ()=>window.print());
+$("#btn-clear").addEventListener("click", ()=>{
+  Object.assign(state, {project:"",member:"",section:"",date:"",mainSpec:"",tieSpec:"",dir:"",
+    dCount:"",dMain:"",dTie:"",mainCount:"",mainVals:[],tieVals:[],image:null,detectedMainCount:null});
+  document.querySelectorAll(".drop").forEach(d=>d.classList.remove("loaded"));
+  syncFormToState();
+});
+$("#btn-sample").addEventListener("click", ()=>{
+  Object.assign(state,{
+    project:"Column 3/4 – Main_Anim034", member:"C1", section:"500 × 700 mm", date:"2026-06-09",
+    mainSpec:"12-D22", tieSpec:"D10@300", dir:"장변(700mm) 정면",
+    dCount:"4", dMain:"199", dTie:"300", mainCount:4,
+    mainVals:["206.30","212.44","205.02","203.46","224.75","203.83","204.75","218.65","204.37"],
+    tieVals:["291.15","282.17","299.53","282.41","283.00","281.94","307.61","282.62"],
+    image:null
+  });
+  syncFormToState();
+});
+
+/* ── 초기 ── */
+syncFormToState();
+</script>
+</body>
+</html>
