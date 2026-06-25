@@ -232,7 +232,8 @@ function render(){
   const mainTbl = spacingRows(s.mainVals.filter(v=>v!=null && v!==""), mAvg);
   const tieTbl  = spacingRows(s.tieVals.filter(v=>v!=null && v!==""), tAvg);
 
-  const dash = v => (v===""||v==null) ? '<span style="color:#bbb">미입력</span>' : v;
+  const dash = v => (v===""||v==null) ? '<span style="color:#bbb">–</span>' : v;
+  const unit = (v,u) => (v===""||v==null) ? '<span style="color:#bbb">–</span>' : v+u;
 
   const fig = s.image
     ? `<img src="${s.image}" alt="철근 직선 추출 결과">`
@@ -278,7 +279,7 @@ function render(){
 
     <h3>3. 간격 측정 결과</h3>
     <h4>3-1. 주근 방향 간격 (Vertical / Main Rebar)</h4>
-    <p>검출된 주근 방향 철근 수: ${dash(mCount)}개 (간격 구간: ${mainTbl.n}개)</p>
+    <p>검출된 주근 방향 철근 수: ${unit(mCount,'개')} (간격 구간: ${mainTbl.n}개)</p>
     <table class="t"><tr><th>주근 간격</th>${mainTbl.head}</tr><tr><td>측정값 (mm)</td>${mainTbl.body}</tr></table>
 
     <h4>3-2. 띠철근 방향 간격 (Horizontal / Tie Rebar)</h4>
@@ -289,7 +290,7 @@ function render(){
     <p>설계도서 대비 측정값을 비교하여 ±10% 허용 오차 기준으로 판정합니다.</p>
     <table class="t">
       <tr><th>항목</th><th>주근 개수</th><th>주근 간격(mm)</th><th>띠철근 간격(mm)</th></tr>
-      <tr><td>설계값</td><td>${dash(s.dCount)}개</td><td>${dash(s.dMain)} mm</td><td>${dash(s.dTie)} mm</td></tr>
+      <tr><td>설계값</td><td>${unit(s.dCount,'개')}</td><td>${unit(s.dMain,' mm')}</td><td>${unit(s.dTie,' mm')}</td></tr>
       <tr><td>측정값</td><td>${mCount!==null?mCount+"개":"–"}</td><td>${mAvg!==null?fmt(mAvg,1)+" mm":"–"}</td><td>${tAvg!==null?fmt(tAvg,1)+" mm":"–"}</td></tr>
       <tr><td>판정</td><td>${badge(jCount)}</td><td>${badge(jMain)}</td><td>${badge(jTie)}</td></tr>
     </table>
