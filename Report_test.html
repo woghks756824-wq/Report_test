@@ -104,7 +104,7 @@
       <input type="file" accept=".csv" id="f-csv">
     </label>
     <label class="drop" id="drop-png">
-      <b>③ 주석 이미지 (.png/.jpg)</b><span>철근 직선 검출 결과</span>
+      <b>③ 이미지 (.png/.jpg)</b><span>철근 직선 검출 결과</span>
       <input type="file" accept="image/*" id="f-png">
     </label>
 
@@ -237,7 +237,7 @@ function render(){
 
   const fig = s.image
     ? `<img src="${s.image}" alt="철근 직선 추출 결과">`
-    : `<div class="ph">③ 주석 이미지를 업로드하면 여기에 표시됩니다</div>`;
+    : `<div class="ph">③ 이미지를 업로드하면 여기에 표시됩니다</div>`;
 
   let verdictHtml = "";
   if(anySet){
